@@ -24,6 +24,14 @@ def clear_text(text):
     return ' '.join(text.split(':\n')[1::]).replace('\n', ' ')
 
 
+def del_pic(quiz_questions_with_pic):
+    no_pic_quiz_questions = {}
+    for question, answer in quiz_questions_with_pic.items():
+        if '(pic:' not in question and '(pic:' not in answer:
+            no_pic_quiz_questions[question] = answer
+    return no_pic_quiz_questions
+
+
 def main():
     questions_paths = Path('quiz-questions/').glob('*.txt')
 
@@ -32,8 +40,9 @@ def main():
         new_questions = get_quiz_questions(questions_path)
         questions.update(new_questions)
 
+    no_pic_quiz_questions = del_pic(questions)
     with open('quiz_questions.json', 'w', encoding='utf8') as file:
-        json.dump(questions, file, ensure_ascii=False, indent=4)
+        json.dump(no_pic_quiz_questions, file, ensure_ascii=False, indent=4)
 
 
 if __name__ == '__main__':
