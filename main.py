@@ -11,7 +11,7 @@ def get_quiz_questions(filepath):
     answers = []
     for text in contents_parts:
         if 'Вопрос' in text:
-            if text.split()[1].replace(':','').isdigit():
+            if text.split()[1].replace(':', '').isdigit():
                 questions.append(clear_text(text))
         elif 'Ответ:' in text:
             answers.append(clear_text(text))
@@ -21,7 +21,7 @@ def get_quiz_questions(filepath):
 
 
 def clear_text(text):
-    return ' '.join(text.split(':\n')[1::]).replace('\n',' ')
+    return ' '.join(text.split(':\n')[1::]).replace('\n', ' ')
 
 
 def main():
