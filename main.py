@@ -20,7 +20,11 @@ def get_quiz_questions(filepath):
 
 
 def clear_text(text):
-    return ' '.join(text.split(':\n')[1::]).replace('\n', ' ')
+    return ' '.join(text.split(':\n')[1::]).\
+        replace('\n', ' ').\
+        replace('"', '').\
+        replace('...','').\
+        strip()
 
 
 def del_pic(quiz_questions_with_pic):
