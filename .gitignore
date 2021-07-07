@@ -4,3 +4,4 @@ venv
 quiz-questions
 quiz_questions.json
 __pycache__
+test.py
