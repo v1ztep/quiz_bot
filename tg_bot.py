@@ -20,39 +20,39 @@ logger = logging.getLogger('chatbots logger')
 states = Enum('state', 'NEW_QUESTION, ANSWER')
 
 
-def start(bot, update, redis_db, reply_markup):
+def start(bot, update, db, reply_markup):
     user_id = f'tg{update.message.chat_id}'
     update.message.reply_text('Чатбот ЧГК активирован!',
                               reply_markup=reply_markup)
-    if not redis_db.get(f'{user_id}_score'):
-        redis_db.set(f'{user_id}_score', 0)
+    if not db.get(f'{user_id}_score'):
+        db.set(f'{user_id}_score', 0)
     return states.NEW_QUESTION
 
 
-def new_question(bot, update, quiz_questions, redis_db, reply_markup):
+def new_question(bot, update, quiz_questions, db, reply_markup):
     user_id = f'tg{update.message.chat_id}'
     random_question = choice(list(quiz_questions))
     update.message.reply_text(random_question, reply_markup=reply_markup)
-    redis_db.set(user_id, random_question)
+    db.set(user_id, random_question)
     return states.ANSWER
 
 
-def capitulate(bot, update, quiz_questions, redis_db, reply_markup):
+def capitulate(bot, update, quiz_questions, db, reply_markup):
     user_id = f'tg{update.message.chat_id}'
-    question = redis_db.get(user_id)
+    question = db.get(user_id)
     update.message.reply_text(quiz_questions[question],
                               reply_markup=reply_markup)
     return states.NEW_QUESTION
 
 
-def check_answer(bot, update, quiz_questions, redis_db, reply_markup):
+def check_answer(bot, update, quiz_questions, db, reply_markup):
     user_id = f'tg{update.message.chat_id}'
     user_answer = update.message.text
-    question = redis_db.get(user_id)
+    question = db.get(user_id)
     right_answer = quiz_questions[question]
     if user_answer.lower() == right_answer.split('(')[0].split('.')[0].lower().strip():
-        points = redis_db.get(f'{user_id}_score')
-        redis_db.set(f'{user_id}_score', int(points) + 1)
+        points = db.get(f'{user_id}_score')
+        db.set(f'{user_id}_score', int(points) + 1)
         update.message.reply_text('Правильно! Поздравляю!',
                                   reply_markup=reply_markup)
     else:
@@ -62,9 +62,9 @@ def check_answer(bot, update, quiz_questions, redis_db, reply_markup):
     return states.NEW_QUESTION
 
 
-def score(bot, update, redis_db, reply_markup):
+def score(bot, update, db, reply_markup):
     user_id = f'tg{update.message.chat_id}'
-    points = redis_db.get(f'{user_id}_score')
+    points = db.get(f'{user_id}_score')
     update.message.reply_text(points, reply_markup=reply_markup)
     return states.NEW_QUESTION
 
@@ -102,7 +102,7 @@ def main():
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler(
             'start',
-            partial(start, reply_markup=reply_markup, redis_db=redis_db)
+            partial(start, reply_markup=reply_markup, db=redis_db)
         )],
 
         states={
@@ -111,7 +111,7 @@ def main():
                     Filters.regex('^Новый вопрос$'),
                     partial(new_question,
                             quiz_questions=quiz_questions,
-                            redis_db=redis_db,
+                            db=redis_db,
                             reply_markup=reply_markup)
                 )
             ],
@@ -120,14 +120,14 @@ def main():
                     Filters.regex('^Сдаться$'),
                     partial(capitulate,
                             quiz_questions=quiz_questions,
-                            redis_db=redis_db,
+                            db=redis_db,
                             reply_markup=reply_markup)
                 ),
                 MessageHandler(
                     Filters.text,
                     partial(check_answer,
                             quiz_questions=quiz_questions,
-                            redis_db=redis_db,
+                            db=redis_db,
                             reply_markup=reply_markup)
                 ),
             ],
@@ -135,7 +135,7 @@ def main():
         fallbacks=[
             MessageHandler(
                 Filters.regex('^Мой счёт$'),
-                partial(score, redis_db=redis_db, reply_markup=reply_markup)
+                partial(score, db=redis_db, reply_markup=reply_markup)
             )
         ]
     )
