@@ -2,8 +2,7 @@ import json
 import logging
 import os
 import random
-
-import redis
+from connect_to_redis_db import connect_to_redis_db
 import telegram
 import vk_api as vk
 from dotenv import load_dotenv
@@ -90,14 +89,7 @@ def main():
     logger.setLevel(logging.INFO)
     logger.addHandler(TelegramLogsHandler(tg_bot, tg_chat_id))
     logger.info('ВК бот запущен')
-
-    redis_host, redis_port = os.getenv('REDISLABS_ENDPOINT').split(':')
-    redis_db_pass = os.getenv('REDIS_DB_PASS')
-    redis_db = redis.Redis(host=redis_host,
-                           port=redis_port,
-                           db=0,
-                           password=redis_db_pass,
-                           decode_responses=True)
+    db = connect_to_redis_db()
 
     vk_session = vk.VkApi(token=vk_token)
     vk_api = vk_session.get_api()
@@ -108,15 +100,15 @@ def main():
     for event in longpoll.listen():
         if event.type == VkEventType.MESSAGE_NEW and event.to_me:
             if event.text == 'Новый вопрос':
-                new_question(event, vk_api, quiz_questions, redis_db)
+                new_question(event, vk_api, quiz_questions, db)
             elif event.text == 'Сдаться':
-                capitulate(event, vk_api, quiz_questions, redis_db)
-                new_question(event, vk_api, quiz_questions, redis_db)
+                capitulate(event, vk_api, quiz_questions, db)
+                new_question(event, vk_api, quiz_questions, db)
             elif event.text == 'Мой счёт':
-                score(event, vk_api, redis_db)
+                score(event, vk_api, db)
             else:
-                check_answer(event, vk_api, quiz_questions, redis_db)
-                new_question(event, vk_api, quiz_questions, redis_db)
+                check_answer(event, vk_api, quiz_questions, db)
+                new_question(event, vk_api, quiz_questions, db)
 
 
 if __name__ == "__main__":

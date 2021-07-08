@@ -4,8 +4,7 @@ import os
 from enum import Enum
 from functools import partial
 from random import choice
-
-import redis
+from connect_to_redis_db import connect_to_redis_db
 import telegram
 from dotenv import load_dotenv
 from telegram.ext import CommandHandler
@@ -77,17 +76,11 @@ def main():
     load_dotenv()
     tg_token = os.getenv('TG_BOT_TOKEN')
     tg_chat_id = os.getenv('TG_CHAT_ID')
-    redis_host, redis_port = os.getenv('REDISLABS_ENDPOINT').split(':')
-    redis_db_pass = os.getenv('REDIS_DB_PASS')
-    redis_db = redis.Redis(host=redis_host,
-                           port=redis_port,
-                           db=0,
-                           password=redis_db_pass,
-                           decode_responses=True)
     tg_bot = telegram.Bot(token=tg_token)
     logger.setLevel(logging.INFO)
     logger.addHandler(TelegramLogsHandler(tg_bot, tg_chat_id))
     logger.info('ТГ бот запущен')
+    db = connect_to_redis_db()
 
     with open('quiz_questions.json', 'r', encoding='utf8') as file:
         quiz_questions = json.loads(file.read())
@@ -102,7 +95,7 @@ def main():
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler(
             'start',
-            partial(start, reply_markup=reply_markup, db=redis_db)
+            partial(start, reply_markup=reply_markup, db=db)
         )],
 
         states={
@@ -111,7 +104,7 @@ def main():
                     Filters.regex('^Новый вопрос$'),
                     partial(new_question,
                             quiz_questions=quiz_questions,
-                            db=redis_db,
+                            db=db,
                             reply_markup=reply_markup)
                 )
             ],
@@ -120,14 +113,14 @@ def main():
                     Filters.regex('^Сдаться$'),
                     partial(capitulate,
                             quiz_questions=quiz_questions,
-                            db=redis_db,
+                            db=db,
                             reply_markup=reply_markup)
                 ),
                 MessageHandler(
                     Filters.text,
                     partial(check_answer,
                             quiz_questions=quiz_questions,
-                            db=redis_db,
+                            db=db,
                             reply_markup=reply_markup)
                 ),
             ],
@@ -135,7 +128,7 @@ def main():
         fallbacks=[
             MessageHandler(
                 Filters.regex('^Мой счёт$'),
-                partial(score, db=redis_db, reply_markup=reply_markup)
+                partial(score, db=db, reply_markup=reply_markup)
             )
         ]
     )
