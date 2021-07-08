@@ -1,27 +1,137 @@
-import random
+import json
+import logging
 import os
-from dotenv import load_dotenv
+import random
+
+import redis
+import telegram
 import vk_api as vk
-from vk_api.longpoll import VkLongPoll, VkEventType
+from dotenv import load_dotenv
+from vk_api.keyboard import VkKeyboard
+from vk_api.keyboard import VkKeyboardColor
+from vk_api.longpoll import VkEventType
+from vk_api.longpoll import VkLongPoll
+from vk_api.utils import get_random_id
+
+from logs_handler import TelegramLogsHandler
+
+logger = logging.getLogger('quiz_bots logger')
 
 
-def echo(event, vk_api):
+def create_keyboard():
+    keyboard = VkKeyboard()
+    keyboard.add_button('Новый вопрос', color=VkKeyboardColor.POSITIVE)
+    keyboard.add_button('Сдаться', color=VkKeyboardColor.NEGATIVE)
+    keyboard.add_line()
+    keyboard.add_button('Мой счёт', color=VkKeyboardColor.SECONDARY)
+    return keyboard.get_keyboard()
+
+
+def new_question(event, vk_api, quiz_questions, db):
+    user_id = f'vk{event.user_id}'
+    random_question = random.choice(list(quiz_questions))
+    db.set(user_id, random_question)
+
     vk_api.messages.send(
         user_id=event.user_id,
-        message=event.text,
-        random_id=random.randint(1,1000)
+        message=random_question,
+        random_id=get_random_id(),
+        keyboard = create_keyboard()
     )
+
+
+def capitulate(event, vk_api, quiz_questions, db):
+    user_id = f'vk{event.user_id}'
+    question = db.get(user_id)
+    vk_api.messages.send(
+        user_id=event.user_id,
+        message=quiz_questions[question],
+        random_id=get_random_id(),
+        keyboard=create_keyboard()
+    )
+
+
+def score(event, vk_api, db):
+    user_id = f'vk{event.user_id}'
+    points = db.get(f'{user_id}_score')
+    if not points:
+        create_player_score(user_id, db)
+        points = 0
+    vk_api.messages.send(
+        user_id=event.user_id,
+        message=points,
+        random_id=get_random_id(),
+        keyboard=create_keyboard()
+    )
+
+
+def create_player_score(user_id, db):
+    db.set(f'{user_id}_score', 0)
+
+
+def check_answer(event, vk_api, quiz_questions, db):
+    user_id = f'vk{event.user_id}'
+    user_answer = event.text
+    question = db.get(user_id)
+    right_answer = quiz_questions[question]
+    if user_answer.lower() == right_answer.split('(')[0].split('.')[0].lower().strip():
+        points = db.get(f'{user_id}_score')
+        if not points:
+            create_player_score(user_id, db)
+            points = 0
+        db.set(f'{user_id}_score', int(points) + 1)
+        vk_api.messages.send(
+            user_id=event.user_id,
+            message='Правильно! Поздравляю!',
+            random_id=get_random_id(),
+            keyboard=create_keyboard()
+        )
+    else:
+        vk_api.messages.send(
+            user_id=event.user_id,
+            message=f'Правильный ответ был: {right_answer}\n'
+                    f'Попробуешь ещё раз?',
+            random_id=get_random_id(),
+            keyboard=create_keyboard()
+        )
 
 
 def main():
     load_dotenv()
+    tg_token = os.getenv('TG_BOT_TOKEN')
+    tg_chat_id = os.getenv('TG_CHAT_ID')
+    tg_bot = telegram.Bot(token=tg_token)
     vk_token = os.getenv('VK_BOT_TOKEN')
+    logger.setLevel(logging.INFO)
+    logger.addHandler(TelegramLogsHandler(tg_bot, tg_chat_id))
+    logger.info('ВК бот запущен')
+
+    redis_host, redis_port = os.getenv('REDISLABS_ENDPOINT').split(':')
+    redis_db_pass = os.getenv('REDIS_DB_PASS')
+    redis_db = redis.Redis(host=redis_host,
+                           port=redis_port,
+                           db=0,
+                           password=redis_db_pass,
+                           decode_responses=True)
+
     vk_session = vk.VkApi(token=vk_token)
     vk_api = vk_session.get_api()
     longpoll = VkLongPoll(vk_session)
+    with open('quiz_questions.json', 'r', encoding='utf8') as file:
+        quiz_questions = json.loads(file.read())
+
     for event in longpoll.listen():
         if event.type == VkEventType.MESSAGE_NEW and event.to_me:
-            echo(event, vk_api)
+            if event.text == 'Новый вопрос':
+                new_question(event, vk_api, quiz_questions, redis_db)
+            elif event.text == 'Сдаться':
+                capitulate(event, vk_api, quiz_questions, redis_db)
+                new_question(event, vk_api, quiz_questions, redis_db)
+            elif event.text == 'Мой счёт':
+                score(event, vk_api, redis_db)
+            else:
+                check_answer(event, vk_api, quiz_questions, redis_db)
+                new_question(event, vk_api, quiz_questions, redis_db)
 
 
 if __name__ == "__main__":
