@@ -28,11 +28,11 @@ def clear_text(text):
 
 
 def del_pic(quiz_questions_with_pic):
-    no_pic_quiz_questions = {}
+    clean_quiz_questions = {}
     for question, answer in quiz_questions_with_pic.items():
         if '(pic:' not in question and '(pic:' not in answer:
-            no_pic_quiz_questions[question] = answer
-    return no_pic_quiz_questions
+            clean_quiz_questions[question] = answer
+    return clean_quiz_questions
 
 
 def main():
@@ -43,9 +43,9 @@ def main():
         new_questions = get_quiz_questions(questions_path)
         questions.update(new_questions)
 
-    no_pic_quiz_questions = del_pic(questions)
+    clean_quiz_questions = del_pic(questions)
     with open('quiz_questions.json', 'w', encoding='utf8') as file:
-        json.dump(no_pic_quiz_questions, file, ensure_ascii=False, indent=4)
+        json.dump(clean_quiz_questions, file, ensure_ascii=False, indent=4)
 
 
 if __name__ == '__main__':
