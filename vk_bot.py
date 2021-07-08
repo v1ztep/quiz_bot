@@ -31,24 +31,13 @@ def new_question(event, vk_api, quiz_questions, db):
     user_id = f'vk{event.user_id}'
     random_question = random.choice(list(quiz_questions))
     db.set(user_id, random_question)
-
-    vk_api.messages.send(
-        user_id=event.user_id,
-        message=random_question,
-        random_id=get_random_id(),
-        keyboard = create_keyboard()
-    )
+    send_message(event, vk_api, random_question)
 
 
 def capitulate(event, vk_api, quiz_questions, db):
     user_id = f'vk{event.user_id}'
     question = db.get(user_id)
-    vk_api.messages.send(
-        user_id=event.user_id,
-        message=quiz_questions[question],
-        random_id=get_random_id(),
-        keyboard=create_keyboard()
-    )
+    send_message(event, vk_api, quiz_questions[question])
 
 
 def score(event, vk_api, db):
@@ -57,12 +46,7 @@ def score(event, vk_api, db):
     if not points:
         create_player_score(user_id, db)
         points = 0
-    vk_api.messages.send(
-        user_id=event.user_id,
-        message=points,
-        random_id=get_random_id(),
-        keyboard=create_keyboard()
-    )
+    send_message(event, vk_api, points)
 
 
 def create_player_score(user_id, db):
@@ -80,20 +64,19 @@ def check_answer(event, vk_api, quiz_questions, db):
             create_player_score(user_id, db)
             points = 0
         db.set(f'{user_id}_score', int(points) + 1)
-        vk_api.messages.send(
-            user_id=event.user_id,
-            message='Правильно! Поздравляю!',
-            random_id=get_random_id(),
-            keyboard=create_keyboard()
-        )
+        send_message(event, vk_api, 'Правильно! Поздравляю!')
     else:
-        vk_api.messages.send(
-            user_id=event.user_id,
-            message=f'Правильный ответ был: {right_answer}\n'
-                    f'Попробуешь ещё раз?',
-            random_id=get_random_id(),
-            keyboard=create_keyboard()
-        )
+        send_message(event, vk_api, f'Правильный ответ был: {right_answer}\n'
+                                    f'Попробуешь ещё раз?')
+
+
+def send_message(event, vk_api, message):
+    vk_api.messages.send(
+        user_id=event.user_id,
+        message=message,
+        random_id=get_random_id(),
+        keyboard=create_keyboard()
+    )
 
 
 def main():
