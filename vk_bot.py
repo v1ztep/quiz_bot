@@ -57,6 +57,8 @@ def check_answer(event, vk_api, quiz_questions, db):
     user_id = f'vk{event.user_id}'
     user_answer = event.text
     question = db.get(user_id)
+    if not question:
+        return
     right_answer = quiz_questions[question]
     if user_answer.lower() == right_answer.split('(')[0].split('.')[0].lower().strip():
         points = db.get(f'{user_id}_score')
