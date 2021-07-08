@@ -16,7 +16,7 @@ from telegram.ext import Updater
 
 from logs_handler import TelegramLogsHandler
 
-logger = logging.getLogger('chatbots logger')
+logger = logging.getLogger('quiz_bots logger')
 states = Enum('state', 'NEW_QUESTION, ANSWER')
 
 
