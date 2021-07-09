@@ -4,7 +4,7 @@ import os
 from enum import Enum
 from functools import partial
 from random import choice
-from connect_to_redis_db import connect_to_redis_db
+
 import telegram
 from dotenv import load_dotenv
 from telegram.ext import CommandHandler
@@ -13,6 +13,7 @@ from telegram.ext import Filters
 from telegram.ext import MessageHandler
 from telegram.ext import Updater
 
+from connect_to_redis_db import connect_to_redis_db
 from logs_handler import TelegramLogsHandler
 
 logger = logging.getLogger('quiz_bots logger')
