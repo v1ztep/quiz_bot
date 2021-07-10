@@ -11,9 +11,10 @@ def get_quiz_questions(filepath):
     questions = []
     answers = []
     for text in contents_parts:
-        if 'Вопрос' in text and text.split()[1].replace(':', '').isdigit():
+        if 'Вопрос' in text and text.split()[1].replace(':', '').isdigit() \
+                and 'Тур:' not in text and 'Комментарий:\n' not in text:
             questions.append(clear_text(text))
-        elif 'Ответ:' in text:
+        elif 'Ответ:\n' in text:
             answers.append(clear_text(text))
 
     quiz_questions = dict(zip(questions, answers))
@@ -37,7 +38,8 @@ def del_trash(questions_with_trash):
                 or '.jpg' in question or '.jpg' in answer:
             continue
         elif 'Блиц' in question_without_remark:
-            blitz_questions = split_blitz(question_without_remark, answer_without_remark)
+            blitz_questions = split_blitz(question_without_remark,
+                                          answer_without_remark)
             out_of_trash_questions.update(blitz_questions)
         else:
             out_of_trash_questions[question_without_remark] = answer_without_remark
@@ -47,12 +49,15 @@ def del_trash(questions_with_trash):
 def split_blitz(questions, answers):
     digits_with_dot_re = r'\b\d{1,2}\b\.'
     only_blitz_questions = questions.split('Блиц')[1].strip()
-    entry = list(map(str.strip, re.split(digits_with_dot_re, only_blitz_questions)[:1]))[0]
+    entry = list(map(str.strip, re.split(digits_with_dot_re,
+                                         only_blitz_questions)[:1]))[0]
 
-    split_questions = list(map(str.strip, re.split(digits_with_dot_re, only_blitz_questions)[1:]))
-    split_answers = list(map(str.strip, re.split(digits_with_dot_re, answers)[1:]))
-    questions_difference = len(split_questions) != len(split_answers)
-    if questions_difference or not split_questions:
+    split_questions = list(map(str.strip, re.split(digits_with_dot_re,
+                                                   only_blitz_questions)[1:]))
+    split_answers = list(map(str.strip, re.split(digits_with_dot_re,
+                                                 answers)[1:]))
+    quantity_difference = len(split_questions) != len(split_answers)
+    if quantity_difference or not split_questions:
         return {}
     if entry:
         entry_questions = [entry + question for question in split_questions]
