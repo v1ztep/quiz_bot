@@ -17,7 +17,7 @@ from connect_to_redis_db import connect_to_redis_db
 from logs_handler import TelegramLogsHandler
 
 logger = logging.getLogger('quiz_bots logger')
-states = Enum('state', 'NEW_QUESTION, ANSWER')
+STATES = Enum('state', 'NEW_QUESTION, ANSWER')
 
 
 def start(bot, update, db, reply_markup):
@@ -26,7 +26,7 @@ def start(bot, update, db, reply_markup):
                               reply_markup=reply_markup)
     if not db.get(f'{user_id}_score'):
         db.set(f'{user_id}_score', 0)
-    return states.NEW_QUESTION
+    return STATES.NEW_QUESTION
 
 
 def new_question(bot, update, quiz_questions, db, reply_markup):
@@ -34,7 +34,7 @@ def new_question(bot, update, quiz_questions, db, reply_markup):
     random_question = choice(list(quiz_questions))
     update.message.reply_text(random_question, reply_markup=reply_markup)
     db.set(user_id, random_question)
-    return states.ANSWER
+    return STATES.ANSWER
 
 
 def capitulate(bot, update, quiz_questions, db, reply_markup):
@@ -42,7 +42,7 @@ def capitulate(bot, update, quiz_questions, db, reply_markup):
     question = db.get(user_id)
     update.message.reply_text(quiz_questions[question],
                               reply_markup=reply_markup)
-    return states.NEW_QUESTION
+    return STATES.NEW_QUESTION
 
 
 def check_answer(bot, update, quiz_questions, db, reply_markup):
@@ -59,14 +59,14 @@ def check_answer(bot, update, quiz_questions, db, reply_markup):
         update.message.reply_text(f'Правильный ответ был: {right_answer}\n'
                                   f'Попробуешь ещё раз?',
                                   reply_markup=reply_markup)
-    return states.NEW_QUESTION
+    return STATES.NEW_QUESTION
 
 
 def score(bot, update, db, reply_markup):
     user_id = f'tg{update.message.chat_id}'
     points = db.get(f'{user_id}_score')
     update.message.reply_text(points, reply_markup=reply_markup)
-    return states.NEW_QUESTION
+    return STATES.NEW_QUESTION
 
 
 def error(bot, update, error):
@@ -100,7 +100,7 @@ def main():
         )],
 
         states={
-            states.NEW_QUESTION: [
+            STATES.NEW_QUESTION: [
                 MessageHandler(
                     Filters.regex('^Новый вопрос$'),
                     partial(new_question,
@@ -109,7 +109,7 @@ def main():
                             reply_markup=reply_markup)
                 )
             ],
-            states.ANSWER: [
+            STATES.ANSWER: [
                 MessageHandler(
                     Filters.regex('^Сдаться$'),
                     partial(capitulate,
