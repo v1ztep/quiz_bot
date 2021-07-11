@@ -22,7 +22,7 @@ def get_quiz_questions(filepath):
 
 
 def clear_text(text):
-    return ' '.join(text.split(':\n')[1::]).\
+    return ' '.join(text.split(':\n')[1:]).\
         replace('\n', ' ').\
         replace('"', '').\
         replace('...','').\
