@@ -41,15 +41,16 @@ def capitulate(event, vk_api, quiz_questions, db):
 
 def score(event, vk_api, db):
     user_id = f'vk{event.user_id}'
-    points = db.get(f'{user_id}_score')
-    if not points:
-        create_player_score(user_id, db)
-        points = 0
+    points = get_player_score(user_id, db)
     send_message(event, vk_api, points)
 
 
-def create_player_score(user_id, db):
-    db.set(f'{user_id}_score', 0)
+def get_player_score(user_id, db):
+    points = db.get(f'{user_id}_score')
+    if not points:
+        db.set(f'{user_id}_score', 0)
+        points = 0
+    return points
 
 
 def check_answer(event, vk_api, quiz_questions, db):
@@ -60,10 +61,7 @@ def check_answer(event, vk_api, quiz_questions, db):
         return
     right_answer = quiz_questions[question]
     if user_answer.lower() == right_answer.split('(')[0].split('.')[0].lower().strip():
-        points = db.get(f'{user_id}_score')
-        if not points:
-            create_player_score(user_id, db)
-            points = 0
+        points = get_player_score(user_id, db)
         db.set(f'{user_id}_score', int(points) + 1)
         send_message(event, vk_api, 'Правильно! Поздравляю!')
     else:
