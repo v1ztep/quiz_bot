@@ -2,5 +2,6 @@
 .idea
 venv
 quiz-questions
+quiz_questions.json
 __pycache__
 test_me.py
