@@ -17,6 +17,7 @@ from telegram.ext import Filters
 from telegram.ext import MessageHandler
 from telegram.ext import PicklePersistence
 from telegram.ext import Updater
+from get_questions import get_quiz_questions
 
 from connect_to_redis_db import connect_to_redis_db
 from logs_handler import TelegramLogsHandler
@@ -28,13 +29,15 @@ custom_keyboard = [['Новый вопрос', 'Сдаться'],
                    ['Мой счёт']]
 reply_markup = telegram.ReplyKeyboardMarkup(custom_keyboard)
 
-with open('quiz_questions.json', 'r', encoding='utf8') as file:
-    quiz_questions = json.loads(file.read())
+quiz_questions = get_quiz_questions()
 db = connect_to_redis_db()
 
 
 def start(update: Update, context: CallbackContext) -> int:
-    db_user_score = f'tg{update.effective_user.id}_score'
+    db_user_id = f'tg{update.effective_user.id}'
+    db_user_score = f'{db_user_id}_score'
+    context.user_data['db_user_id'] = db_user_id
+    context.user_data['db_user_score'] = db_user_score
     update.message.reply_text('Чатбот ЧГК активирован!',
                               reply_markup=reply_markup)
     if not db.get(db_user_score):
@@ -43,30 +46,26 @@ def start(update: Update, context: CallbackContext) -> int:
 
 
 def new_question(update: Update, context: CallbackContext) -> int:
-    db_user_id = f'tg{update.effective_user.id}'
     random_question = choice(list(quiz_questions))
     update.message.reply_text(random_question, reply_markup=reply_markup)
-    db.set(db_user_id, random_question)
+    db.set(context.user_data['db_user_id'], random_question)
     return ANSWER
 
 
 def capitulate(update: Update, context: CallbackContext) -> int:
-    db_user_id = f'tg{update.effective_user.id}'
-    question = db.get(db_user_id)
+    question = db.get(context.user_data['db_user_id'])
     update.message.reply_text(quiz_questions[question],
                               reply_markup=reply_markup)
     return NEW_QUESTION
 
 
 def check_answer(update: Update, context: CallbackContext) -> int:
-    db_user_id = f'tg{update.effective_user.id}'
-    db_user_score = f'tg{update.effective_user.id}_score'
     user_answer = update.message.text
-    question = db.get(db_user_id)
+    question = db.get(context.user_data['db_user_id'])
     right_answer = quiz_questions[question]
     if user_answer.lower() == right_answer.split('(')[0].split('.')[0].lower().strip():
-        points = db.get(db_user_score)
-        db.set(db_user_score, int(points) + 1)
+        points = db.get(context.user_data['db_user_score'])
+        db.set(context.user_data['db_user_score'], int(points) + 1)
         update.message.reply_text('Правильно! Поздравляю!',
                                   reply_markup=reply_markup)
     else:
@@ -77,8 +76,7 @@ def check_answer(update: Update, context: CallbackContext) -> int:
 
 
 def score(update: Update, context: CallbackContext) -> int:
-    db_user_score = f'tg{update.effective_user.id}_score'
-    points = db.get(db_user_score)
+    points = db.get(context.user_data['db_user_score'])
     update.message.reply_text(points, reply_markup=reply_markup)
     user_id = update.effective_user.id
     user_state = get_user_state(context, user_id)
@@ -131,6 +129,7 @@ def main():
                 MessageHandler(Filters.regex('^Новый вопрос$'), new_question)
             ],
             ANSWER: [
+                MessageHandler(Filters.regex('^Новый вопрос$'), new_question),
                 MessageHandler(Filters.regex('^Сдаться$'), capitulate),
                 MessageHandler(Filters.regex('^Мой счёт$'), score),
                 MessageHandler(Filters.text, check_answer)
