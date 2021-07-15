@@ -1,8 +1,7 @@
-import json
 import logging
 import os
 import random
-from connect_to_redis_db import connect_to_redis_db
+
 import telegram
 import vk_api as vk
 from dotenv import load_dotenv
@@ -12,6 +11,8 @@ from vk_api.longpoll import VkEventType
 from vk_api.longpoll import VkLongPoll
 from vk_api.utils import get_random_id
 
+from connect_to_redis_db import connect_to_redis_db
+from get_questions import get_quiz_questions
 from logs_handler import TelegramLogsHandler
 
 logger = logging.getLogger('quiz_bots logger')
@@ -92,8 +93,7 @@ def main():
     vk_session = vk.VkApi(token=vk_token)
     vk_api = vk_session.get_api()
     longpoll = VkLongPoll(vk_session)
-    with open('quiz_questions.json', 'r', encoding='utf8') as file:
-        quiz_questions = json.loads(file.read())
+    quiz_questions = get_quiz_questions()
 
     for event in longpoll.listen():
         if event.type == VkEventType.MESSAGE_NEW and event.to_me:
