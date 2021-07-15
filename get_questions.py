@@ -1,9 +1,20 @@
-import json
 import re
 from pathlib import Path
 
 
-def get_quiz_questions(filepath):
+def get_quiz_questions():
+    questions_paths = Path('quiz-questions/').glob('*.txt')
+
+    questions = {}
+    for questions_path in questions_paths:
+        new_questions = create_questions(questions_path)
+        questions.update(new_questions)
+
+    quiz_questions = del_trash(questions)
+    return quiz_questions
+
+
+def create_questions(filepath):
     with open(filepath, "r", encoding='KOI8-R') as file:
         file_contents = file.read()
     contents_parts = file_contents.split('\n\n')
@@ -65,21 +76,3 @@ def split_blitz(questions, answers):
     else:
         blitz_questions = dict(zip(split_questions, split_answers))
     return blitz_questions
-
-
-def main():
-    questions_paths = Path('quiz-questions/').glob('*.txt')
-
-    questions = {}
-    for questions_path in questions_paths:
-        new_questions = get_quiz_questions(questions_path)
-        questions.update(new_questions)
-
-    out_of_trash_questions = del_trash(questions)
-
-    with open('quiz_questions.json', 'w', encoding='utf8') as file:
-        json.dump(out_of_trash_questions, file, ensure_ascii=False, indent=4)
-
-
-if __name__ == '__main__':
-    main()
