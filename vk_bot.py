@@ -5,6 +5,7 @@ import random
 import telegram
 import vk_api as vk
 from dotenv import load_dotenv
+from fuzzywuzzy import fuzz
 from vk_api.keyboard import VkKeyboard
 from vk_api.keyboard import VkKeyboardColor
 from vk_api.longpoll import VkEventType
@@ -61,13 +62,21 @@ def check_answer(event, vk_api, quiz_questions, db):
     if not question:
         return
     right_answer = quiz_questions[question]
-    if user_answer.lower() == right_answer.split('(')[0].split('.')[0].lower().strip():
+    if similarity_check(user_answer, right_answer):
         points = get_player_score(user_id, db)
         db.set(f'{user_id}_score', int(points) + 1)
         send_message(event, vk_api, 'Правильно! Поздравляю!')
     else:
         send_message(event, vk_api, f'Правильный ответ был: {right_answer}\n'
                                     f'Попробуешь ещё раз?')
+
+
+def similarity_check(user_answer, right_answer):
+    similarity_check = fuzz.WRatio(
+        user_answer.lower().strip(),
+        right_answer.split('(')[0].split('.')[0]. lower().strip()
+    )
+    return similarity_check >= 80
 
 
 def send_message(event, vk_api, message):
