@@ -1,7 +1,8 @@
 .env
 .idea
 venv
-quiz-questions
+quiz-questions/*
+!quiz-questions/1vs**
 quiz_questions.json
 __pycache__
 test_me.py
