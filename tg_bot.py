@@ -15,69 +15,67 @@ from telegram.ext import CommandHandler
 from telegram.ext import ConversationHandler
 from telegram.ext import Filters
 from telegram.ext import MessageHandler
-from telegram.ext import PicklePersistence
 from telegram.ext import Updater
 from get_questions import get_quiz_questions
 
-from connect_to_redis_db import connect_to_redis_db
 from logs_handler import TelegramLogsHandler
+from redis_persistence import RedisPersistence
 
 logger = logging.getLogger('quiz_bots logger')
 NEW_QUESTION, ANSWER = range(2)
 
 custom_keyboard = [['Новый вопрос', 'Сдаться'],
                    ['Мой счёт']]
-reply_markup = telegram.ReplyKeyboardMarkup(custom_keyboard)
+REPLY_MARKUP = telegram.ReplyKeyboardMarkup(custom_keyboard)
 
-quiz_questions = get_quiz_questions()
-db = connect_to_redis_db()
+QUIZ_QUESTIONS = None
+
+
+def get_quiz():
+    global QUIZ_QUESTIONS
+    QUIZ_QUESTIONS = get_quiz_questions()
 
 
 def start(update: Update, context: CallbackContext) -> int:
-    db_user_id = f'tg{update.effective_user.id}'
-    db_user_score = f'{db_user_id}_score'
-    context.user_data['db_user_id'] = db_user_id
-    context.user_data['db_user_score'] = db_user_score
     update.message.reply_text('Чатбот ЧГК активирован!',
-                              reply_markup=reply_markup)
-    if not db.get(db_user_score):
-        db.set(db_user_score, 0)
+                              reply_markup=REPLY_MARKUP)
+    context.user_data['user_score'] = 0
     return NEW_QUESTION
 
 
 def new_question(update: Update, context: CallbackContext) -> int:
-    random_question = choice(list(quiz_questions))
-    update.message.reply_text(random_question, reply_markup=reply_markup)
-    db.set(context.user_data['db_user_id'], random_question)
+    random_question = choice(list(QUIZ_QUESTIONS))
+    update.message.reply_text(random_question, reply_markup=REPLY_MARKUP)
+    context.user_data['user_question'] = random_question
     return ANSWER
 
 
 def capitulate(update: Update, context: CallbackContext) -> int:
-    question = db.get(context.user_data['db_user_id'])
-    update.message.reply_text(quiz_questions[question],
-                              reply_markup=reply_markup)
+    question = context.user_data['user_question']
+    update.message.reply_text(QUIZ_QUESTIONS[question],
+                              reply_markup=REPLY_MARKUP)
     return NEW_QUESTION
 
 
 def check_answer(update: Update, context: CallbackContext) -> int:
     user_answer = update.message.text
-    question = db.get(context.user_data['db_user_id'])
-    right_answer = quiz_questions[question]
-    if user_answer.lower() == right_answer.split('(')[0].split('.')[0].lower().strip():
-        points = db.get(context.user_data['db_user_score'])
-        db.set(context.user_data['db_user_score'], int(points) + 1)
+    question = context.user_data['user_question']
+    right_answer = QUIZ_QUESTIONS[question]
+    if user_answer.lower().strip() == right_answer.split('(')[0].split('.')[0].\
+                                                    lower().strip():
+        context.user_data['user_score'] += 1
         update.message.reply_text('Правильно! Поздравляю!',
-                                  reply_markup=reply_markup)
+                                  reply_markup=REPLY_MARKUP)
     else:
         update.message.reply_text(f'Правильный ответ был: {right_answer}\n'
                                   f'Попробуешь ещё раз?',
-                                  reply_markup=reply_markup)
+                                  reply_markup=REPLY_MARKUP)
     return NEW_QUESTION
 
 
 def score(update: Update, context: CallbackContext) -> int:
-    points = db.get(context.user_data['db_user_score'])
-    update.message.reply_text(points, reply_markup=reply_markup)
+    points = context.user_data['user_score']
+    update.message.reply_text(points, reply_markup=REPLY_MARKUP)
     user_id = update.effective_user.id
     user_state = get_user_state(context, user_id)
     return user_state
@@ -111,6 +109,7 @@ def error_handler(update: object, context: CallbackContext, tg_chat_id: int) -> 
 
 def main():
     load_dotenv()
+    get_quiz()
     tg_token = os.getenv('TG_BOT_TOKEN')
     tg_chat_id = os.getenv('TG_CHAT_ID')
     tg_bot = telegram.Bot(token=tg_token)
@@ -118,7 +117,14 @@ def main():
     logger.addHandler(TelegramLogsHandler(tg_bot, tg_chat_id))
     logger.info('ТГ бот запущен')
 
-    persistence = PicklePersistence(filename='conversationbot')
+    redis_host, redis_port = os.getenv('REDISLABS_ENDPOINT').split(':')
+    redis_db_pass = os.getenv('REDIS_DB_PASS')
+    persistence = RedisPersistence(
+        host=redis_host,
+        port=redis_port,
+        db=0,
+        password=redis_db_pass
+    )
     updater = Updater(tg_token, persistence=persistence)
     dp = updater.dispatcher
 
