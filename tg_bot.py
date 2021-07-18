@@ -27,7 +27,8 @@ NEW_QUESTION, ANSWER = range(2)
 
 custom_keyboard = [['Новый вопрос', 'Сдаться'],
                    ['Мой счёт']]
-REPLY_MARKUP = telegram.ReplyKeyboardMarkup(custom_keyboard)
+REPLY_MARKUP = telegram.ReplyKeyboardMarkup(custom_keyboard,
+                                            resize_keyboard=True)
 
 QUIZ_QUESTIONS = None
 
