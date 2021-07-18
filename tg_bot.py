@@ -8,7 +8,6 @@ from random import choice
 
 import telegram
 from dotenv import load_dotenv
-from fuzzywuzzy import fuzz
 from telegram import ParseMode
 from telegram import Update
 from telegram.ext import CallbackContext
@@ -18,6 +17,7 @@ from telegram.ext import Filters
 from telegram.ext import MessageHandler
 from telegram.ext import Updater
 
+from check_similarity import check_similarity
 from get_questions import get_quiz_questions
 from logs_handler import TelegramLogsHandler
 from redis_persistence import RedisPersistence
@@ -72,15 +72,6 @@ def check_answer(update: Update, context: CallbackContext) -> int:
                                   f'Попробуешь ещё раз?',
                                   reply_markup=REPLY_MARKUP)
     return NEW_QUESTION
-
-
-def check_similarity(user_answer, right_answer):
-    similarity_check = fuzz.WRatio(
-        user_answer.lower().strip(),
-        # Для сверки оставляю ответ без пояснений - идущих после скобки\точки.
-        right_answer.split('(')[0].split('.')[0].lower().strip()
-    )
-    return similarity_check >= 80
 
 
 def get_score(update: Update, context: CallbackContext) -> int:

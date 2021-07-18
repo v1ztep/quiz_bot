@@ -5,13 +5,13 @@ import random
 import telegram
 import vk_api as vk
 from dotenv import load_dotenv
-from fuzzywuzzy import fuzz
 from vk_api.keyboard import VkKeyboard
 from vk_api.keyboard import VkKeyboardColor
 from vk_api.longpoll import VkEventType
 from vk_api.longpoll import VkLongPoll
 from vk_api.utils import get_random_id
 
+from check_similarity import check_similarity
 from connect_to_redis_db import connect_to_redis_db
 from get_questions import get_quiz_questions
 from logs_handler import TelegramLogsHandler
@@ -62,22 +62,13 @@ def check_answer(event, vk_api, quiz_questions, db):
     if not question:
         return
     right_answer = quiz_questions[question]
-    if similarity_check(user_answer, right_answer):
+    if check_similarity(user_answer, right_answer):
         points = get_player_score(user_id, db)
         db.set(f'{user_id}_score', int(points) + 1)
         send_message(event, vk_api, 'Правильно! Поздравляю!')
     else:
         send_message(event, vk_api, f'Правильный ответ был: {right_answer}\n'
                                     f'Попробуешь ещё раз?')
-
-
-def similarity_check(user_answer, right_answer):
-    similarity_check = fuzz.WRatio(
-        user_answer.lower().strip(),
-        # Для сверки оставляю ответ без пояснений - идущих после скобки\точки.
-        right_answer.split('(')[0].split('.')[0].lower().strip()
-    )
-    return similarity_check >= 80
 
 
 def send_message(event, vk_api, message):
