@@ -63,7 +63,7 @@ def check_answer(update: Update, context: CallbackContext) -> int:
     user_answer = update.message.text
     question = context.user_data['user_question']
     right_answer = QUIZ_QUESTIONS[question]
-    if similarity_check(user_answer, right_answer):
+    if check_similarity(user_answer, right_answer):
         context.user_data['user_score'] += 1
         update.message.reply_text('Правильно! Поздравляю!',
                                   reply_markup=REPLY_MARKUP)
@@ -74,15 +74,15 @@ def check_answer(update: Update, context: CallbackContext) -> int:
     return NEW_QUESTION
 
 
-def similarity_check(user_answer, right_answer):
+def check_similarity(user_answer, right_answer):
     similarity_check = fuzz.WRatio(
         user_answer.lower().strip(),
-        right_answer.split('(')[0].split('.')[0]. lower().strip()
+        right_answer.split('(')[0].split('.')[0].lower().strip()
     )
     return similarity_check >= 80
 
 
-def score(update: Update, context: CallbackContext) -> int:
+def get_score(update: Update, context: CallbackContext) -> int:
     points = context.user_data['user_score']
     update.message.reply_text(points, reply_markup=REPLY_MARKUP)
     user_id = update.effective_user.id
@@ -146,11 +146,11 @@ def main():
             ANSWER: [
                 MessageHandler(Filters.regex('^Новый вопрос$'), new_question),
                 MessageHandler(Filters.regex('^Сдаться$'), capitulate),
-                MessageHandler(Filters.regex('^Мой счёт$'), score),
+                MessageHandler(Filters.regex('^Мой счёт$'), get_score),
                 MessageHandler(Filters.text, check_answer)
             ],
         },
-        fallbacks=[MessageHandler(Filters.regex('^Мой счёт$'), score)],
+        fallbacks=[MessageHandler(Filters.regex('^Мой счёт$'), get_score)],
         name="my_conversation",
         persistent=True,
     )
