@@ -1,7 +1,5 @@
 import os
 import redis
-from dotenv import load_dotenv
-load_dotenv()
 
 
 def connect_to_redis_db():
