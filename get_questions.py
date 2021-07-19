@@ -7,14 +7,14 @@ def get_quiz_questions():
 
     questions = {}
     for questions_path in questions_paths:
-        new_questions = create_questions(questions_path)
+        new_questions = form_questions(questions_path)
         questions.update(new_questions)
 
-    quiz_questions = del_trash(questions)
+    quiz_questions = del_incorrect_questions(questions)
     return quiz_questions
 
 
-def create_questions(filepath):
+def form_questions(filepath):
     with open(filepath, "r", encoding='KOI8-R') as file:
         file_contents = file.read()
     contents_parts = file_contents.split('\n\n')
@@ -40,7 +40,7 @@ def clear_text(text):
         strip()
 
 
-def del_trash(questions_with_trash):
+def del_incorrect_questions(questions_with_trash):
     out_of_trash_questions = {}
     for question, answer in questions_with_trash.items():
         question_without_remark = re.sub(r'\[.*\]', '', question)
