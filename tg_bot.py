@@ -31,23 +31,18 @@ custom_keyboard = [['Новый вопрос', 'Сдаться'],
 REPLY_MARKUP = telegram.ReplyKeyboardMarkup(custom_keyboard,
                                             resize_keyboard=True)
 
-QUIZ_QUESTIONS = None
-
-
-def get_quiz():
-    global QUIZ_QUESTIONS
-    QUIZ_QUESTIONS = get_quiz_questions()
-
 
 def start(update: Update, context: CallbackContext) -> int:
     update.message.reply_text('Чатбот ЧГК активирован!',
                               reply_markup=REPLY_MARKUP)
     context.user_data['user_score'] = 0
+    if not context.bot_data:
+        context.bot_data['questions'] = get_quiz_questions()
     return NEW_QUESTION
 
 
 def new_question(update: Update, context: CallbackContext) -> int:
-    random_question = choice(list(QUIZ_QUESTIONS))
+    random_question = choice(list(context.bot_data['questions']))
     update.message.reply_text(random_question, reply_markup=REPLY_MARKUP)
     context.user_data['user_question'] = random_question
     return ANSWER
@@ -55,7 +50,7 @@ def new_question(update: Update, context: CallbackContext) -> int:
 
 def capitulate(update: Update, context: CallbackContext) -> int:
     question = context.user_data['user_question']
-    update.message.reply_text(QUIZ_QUESTIONS[question],
+    update.message.reply_text(context.bot_data['questions'][question],
                               reply_markup=REPLY_MARKUP)
     return NEW_QUESTION
 
@@ -63,7 +58,7 @@ def capitulate(update: Update, context: CallbackContext) -> int:
 def check_answer(update: Update, context: CallbackContext) -> int:
     user_answer = update.message.text
     question = context.user_data['user_question']
-    right_answer = QUIZ_QUESTIONS[question]
+    right_answer = context.bot_data['questions'][question]
     if check_similarity(user_answer, right_answer):
         context.user_data['user_score'] += 1
         update.message.reply_text('Правильно! Поздравляю!',
@@ -112,7 +107,6 @@ def error_handler(update: object, context: CallbackContext, tg_chat_id: int) -> 
 
 def main():
     load_dotenv()
-    get_quiz()
     tg_token = os.getenv('TG_BOT_TOKEN')
     tg_chat_id = os.getenv('TG_CHAT_ID')
     tg_bot = telegram.Bot(token=tg_token)
