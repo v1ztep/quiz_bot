@@ -7,14 +7,16 @@ def get_quiz_questions():
 
     questions = {}
     for questions_path in questions_paths:
-        new_questions = form_questions(questions_path)
+        new_questions = pick_out_questions(questions_path)
         questions.update(new_questions)
 
-    quiz_questions = del_incorrect_questions(questions)
-    return quiz_questions
+    without_pic_questions = del_pic_in_questions(questions)
+    without_remark_questions = del_remark_in_questions(without_pic_questions)
+    divided_questions = divide_blitz_questions(without_remark_questions)
+    return divided_questions
 
 
-def form_questions(filepath):
+def pick_out_questions(filepath):
     with open(filepath, "r", encoding='KOI8-R') as file:
         file_contents = file.read()
     contents_parts = file_contents.split('\n\n')
@@ -40,21 +42,35 @@ def clear_text(text):
         strip()
 
 
-def del_incorrect_questions(questions_with_trash):
-    out_of_trash_questions = {}
-    for question, answer in questions_with_trash.items():
+def del_pic_in_questions(questions_with_pic):
+    without_pic_questions = {}
+    for question, answer in questions_with_pic.items():
+        if '(pic:' in question or '(pic:' in answer or '.jpg' in question \
+                or '.jpg' in answer:
+            continue
+        else:
+            without_pic_questions[question] = answer
+    return without_pic_questions
+
+
+def del_remark_in_questions(questions_with_remark):
+    without_remark_questions = {}
+    for question, answer in questions_with_remark.items():
         question_without_remark = re.sub(r'\[.*\]', '', question)
         answer_without_remark = re.sub(r'\[.*\]', '', answer)
-        if '(pic:' in question or '(pic:' in answer or '<раздатка>' in question \
-                or '.jpg' in question or '.jpg' in answer:
-            continue
-        elif 'Блиц' in question_without_remark:
-            blitz_questions = split_blitz(question_without_remark,
-                                          answer_without_remark)
-            out_of_trash_questions.update(blitz_questions)
+        without_remark_questions[question_without_remark] = answer_without_remark
+    return without_remark_questions
+
+
+def divide_blitz_questions(questions_with_blitz):
+    divided_questions = {}
+    for question, answer in questions_with_blitz.items():
+        if 'Блиц' in question:
+            blitz_questions = split_blitz(question, answer)
+            divided_questions.update(blitz_questions)
         else:
-            out_of_trash_questions[question_without_remark] = answer_without_remark
-    return out_of_trash_questions
+            divided_questions[question] = answer
+    return divided_questions
 
 
 def split_blitz(questions, answers):
