@@ -2,6 +2,7 @@ import html
 import json
 import logging
 import os
+import textwrap
 import traceback
 from functools import partial
 from random import choice
@@ -93,18 +94,20 @@ def get_user_state(context: CallbackContext, user_id: int) -> int:
 def error_handler(update: object, context: CallbackContext, tg_chat_id: int) -> None:
     logger.exception(msg='Exception while handling an update:')
 
-    tb_list = traceback.format_exception(None, context.error, context.error.__traceback__)
+    tb_list = traceback.format_exception(None, context.error,
+                                         context.error.__traceback__)
     tb_string = ''.join(tb_list)
 
     update_str = update.to_dict() if isinstance(update, Update) else str(update)
     message = (
-        f'An exception was raised while handling an update\n'
-        f'<pre>update = {html.escape(json.dumps(update_str, indent=2, ensure_ascii=False))}'
-        '</pre>\n\n'
-        f'<pre>context.user_data = {html.escape(str(context.user_data))}</pre>\n\n'
-        f'<pre>{html.escape(tb_string)}</pre>'
+        f'''An exception was raised while handling an update
+        <pre>update = {html.escape(json.dumps(
+            update_str, indent=2, ensure_ascii=False))}</pre>
+        <pre>context.user_data = {html.escape(str(context.user_data))}</pre>
+        <pre>{html.escape(tb_string)}</pre>'''
     )
-    context.bot.send_message(chat_id=tg_chat_id, text=message, parse_mode=ParseMode.HTML)
+    context.bot.send_message(chat_id=tg_chat_id, text=textwrap.dedent(message),
+                             parse_mode=ParseMode.HTML)
 
 
 def main():
