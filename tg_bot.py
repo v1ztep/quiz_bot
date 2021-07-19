@@ -91,7 +91,7 @@ def get_user_state(context: CallbackContext, user_id: int) -> int:
 
 
 def error_handler(update: object, context: CallbackContext, tg_chat_id: int) -> None:
-    logger.error(msg="Exception while handling an update:", exc_info=context.error)
+    logger.exception(msg='Exception while handling an update:')
 
     tb_list = traceback.format_exception(None, context.error, context.error.__traceback__)
     tb_string = ''.join(tb_list)
@@ -101,7 +101,6 @@ def error_handler(update: object, context: CallbackContext, tg_chat_id: int) -> 
         f'An exception was raised while handling an update\n'
         f'<pre>update = {html.escape(json.dumps(update_str, indent=2, ensure_ascii=False))}'
         '</pre>\n\n'
-        f'<pre>context.chat_data = {html.escape(str(context.chat_data))}</pre>\n\n'
         f'<pre>context.user_data = {html.escape(str(context.user_data))}</pre>\n\n'
         f'<pre>{html.escape(tb_string)}</pre>'
     )
