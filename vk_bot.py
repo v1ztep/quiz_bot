@@ -41,7 +41,7 @@ def capitulate(event, vk_api, quiz_questions, db):
     send_message(event, vk_api, quiz_questions[question])
 
 
-def score(event, vk_api, db):
+def get_score(event, vk_api, db):
     user_id = f'vk{event.user_id}'
     points = get_player_score(user_id, db)
     send_message(event, vk_api, points)
@@ -104,7 +104,7 @@ def main():
                 capitulate(event, vk_api, quiz_questions, db)
                 new_question(event, vk_api, quiz_questions, db)
             elif event.text == 'Мой счёт':
-                score(event, vk_api, db)
+                get_score(event, vk_api, db)
             else:
                 check_answer(event, vk_api, quiz_questions, db)
                 new_question(event, vk_api, quiz_questions, db)
