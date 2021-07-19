@@ -7,7 +7,7 @@ def get_quiz_questions():
 
     questions = {}
     for questions_path in questions_paths:
-        new_questions = pick_out_questions(questions_path)
+        new_questions = select_questions(questions_path)
         questions.update(new_questions)
 
     without_pic_questions = del_pic_in_questions(questions)
@@ -16,7 +16,7 @@ def get_quiz_questions():
     return divided_questions
 
 
-def pick_out_questions(filepath):
+def select_questions(filepath):
     with open(filepath, "r", encoding='KOI8-R') as file:
         file_contents = file.read()
     contents_parts = file_contents.split('\n\n')
