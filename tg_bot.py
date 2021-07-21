@@ -36,8 +36,6 @@ def start(update: Update, context: CallbackContext) -> int:
     update.message.reply_text('Чатбот ЧГК активирован!',
                               reply_markup=REPLY_MARKUP)
     context.user_data['user_score'] = 0
-    if not context.bot_data:
-        context.bot_data['questions'] = get_quiz_questions()
     return NEW_QUESTION
 
 
@@ -124,6 +122,7 @@ def main():
     )
     updater = Updater(tg_token, persistence=persistence)
     dp = updater.dispatcher
+    dp.bot_data['questions'] = get_quiz_questions()
 
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
